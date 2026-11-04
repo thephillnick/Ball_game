@@ -3,14 +3,18 @@ import random
 pygame.init()
 
 #
-screen = pygame.display.set_mode((1080,1920))
+screen = pygame.display.set_mode((1080,720))
 running = True
 
 class balk_class(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.start_pos = 
-        balk_surf = pygame.draw.rect(screen,colour,())
+        self.start_xpos =  540
+        self.colour
+
+        balk_surf = pygame.draw.rect(screen,self.colour,(50,5),100)
+        self.image = balk_surf
+        self.rect = self.image.get_rect()
 
 
     def moveright(self):
@@ -20,7 +24,8 @@ class balk_class(pygame.sprite.Sprite):
     def moveleft (self):
         self.xpos -= 5
 
-balk_group = balk_class.
+balk_group = pygame.sprite.Group()
+balk_group.add(balk_class())
 
 
 # class ball_class(pygame.sprite.Sprite):
