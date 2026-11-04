@@ -1,0 +1,40 @@
+import pygame
+import random
+pygame.init()
+
+#
+screen = pygame.display.set_mode((1080,1920))
+running = True
+
+class balk_class(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.start_pos = 
+        balk_surf = pygame.draw.rect(screen,colour,())
+
+
+    def moveright(self):
+        # if
+        self.xpos += 5
+
+    def moveleft (self):
+        self.xpos -= 5
+
+balk_group = balk_class.
+
+
+# class ball_class(pygame.sprite.Sprite):
+#     def __init__(self):
+#         super().__init__()
+
+
+
+while running: 
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RIGHT:
+
+                balk_group.moveright()
