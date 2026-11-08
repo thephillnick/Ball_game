@@ -1,0 +1,254 @@
+import pygame
+import random
+import numpy as np
+import math as m
+pygame.init()
+
+#
+screen = pygame.display.set_mode((500,720))
+running = True
+clock = pygame.time.Clock()
+
+class constant_class:
+    def __init__(self):
+        self.block_w = 50
+        self.block_h = 30
+        self.balk_h1 = 50
+        self.balk_w = 40
+        self.balk_h2 = 10
+        self.ball_r = 10
+        self.ball_v = 10
+
+s = constant_class()
+
+class balk_class(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.start_xpos =  screen.get_width()/2
+        self.xpos = self.start_xpos
+        self.ypos = screen.get_height() - s.balk_h1
+        self.colour = "black"
+        self.width = s.balk_w
+        self.height = s.balk_h2
+        self.key_right = False
+        self.key_left = False
+
+        self.image = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        pygame.draw.rect(self.image, self.colour, (0, 0, self.width, self.height), 0, 2)
+        self.rect = self.image.get_rect(center=(self.xpos, self.ypos))
+
+
+    def movement(self):
+        if self.key_right: self.xpos += 5
+        if self.key_left: self.xpos -= 5
+        if self.xpos > screen.get_width() - s.block_w - self.width/2: self.xpos = screen.get_width() - s.block_w - self.width/2
+        if self.xpos < s.block_w + self.width/2: self.xpos = s.block_w + self.width/2
+        self.rect = self.image.get_rect(center=(self.xpos, self.ypos))
+
+
+
+    def update(self):
+        self.movement()
+
+balk = pygame.sprite.GroupSingle()
+balk.add(balk_class())
+
+block_row = []
+
+class block_class(pygame.sprite.Sprite):
+    def __init__(self, i, j, id):
+        super().__init__()
+        self.width = s.block_w
+        self.height = s.block_h
+        self.xpos = j*self.width
+        self.ypos = i*self.height
+
+        if id == 1:
+            self.colour = "gray"
+        if id == 2: 
+            self.colour = "yellow"
+
+        self.image = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        pygame.draw.rect(self.image, self.colour, (0, 0, self.width, self.height),0)
+        pygame.draw.rect(self.image, "black", (0, 0, self.width, self.height), 2,1)
+        self.rect = self.image.get_rect(topleft=(self.xpos, self.ypos))
+
+        block_row.append(self.rect)
+        print (block_row)
+block_group = pygame.sprite.Group()
+
+# level creation
+
+def level_0(base):
+    base[1:5] = 2
+    return base
+
+def rand(base):
+    base[0] = 1
+    base[-1] = 1
+    base[:,0] = 1
+    base[:,-1] = 1
+    return base
+
+def encoder(base,row,col):
+    for i in range (row):
+        for j in range (col): 
+            if base[i,j] != 0:
+                block_group.add(block_class(i,j,base[i,j]))
+
+def setup():
+    row = int((screen.get_height())/s.block_h)
+    col = int(screen.get_width()/s.block_w)
+    base = np.zeros((row,col))
+    base = level_0(base)
+    base = rand(base)
+    encoder(base,row,col)
+
+
+
+
+def direction_change1(block, cxpos, cypos, vx, vy, theta):
+    dx = cxpos - block.xpos 
+    dy = cypos - block.ypos 
+    if 0 <= dx <= s.block_w:
+        if dy < 0 and vy > 0:
+            vy = -vy
+        elif dy > 0 and vy < 0:
+            vy = -vy
+    elif 0 <= dy <= s.block_h:
+        if dx < 0 and vx > 0:
+            vx = -vx
+        elif dx > 0 and vx < 0:
+            vx = -vx
+    else:
+        # vector hoek -> M
+        if dx < 0 and dy < 0 and vx < 0 and vy < 0:
+            theta = m.atan2(dy, dx) + m.pi
+        elif dx > s.block_w and dy > s.block_h and vx > 0 and vy > 0:
+            theta = m.atan2(dy, dx)
+        elif dx < 0 and dy > s.block_h and vx < 0 and vy > 0:
+            theta = m.atan2(dy, dx) + m.pi
+        elif dx > s.block_w and dy < 0 and vx > 0 and vy < 0:
+            theta = m.atan2(dy, dx)
+
+        vx = s.ball_v*m.cos(theta)
+        vy = - s.ball_v*m.sin(theta)
+
+    return vx, vy
+
+def direction_change2(block_list, cxpos, cypos, vx, vy, theta):
+    dx0 = cxpos - block_list[0].xpos
+    dy0 = cypos - block_list[0].ypos
+    dx1 = cxpos - block_list[1].xpos
+    dy1 = cypos - block_list[1].ypos
+    if block_list[0].ypos == block_list[1].ypos:
+        if dy0 > 0 and vy < 0:
+            vy = -vy
+        if dy0 < 0 and vy > 0:
+            vy = -vy
+    elif block_list[0].xpos == block_list[1].xpos:
+        if dx0 > 0 and vx < 0:
+            vx = -vx
+        if dx0 < 0 and vx > 0:
+            vx = -vx
+    return vx, vy
+
+def direction_change3(block_list, cxpos, cypos, vx, vy, theta):
+    # niet klaar
+    vx = -vx
+    vy = -vy
+    return vx, vy
+
+class ball_class(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.v = s.ball_v
+        self.theta = random.uniform(m.pi/4,m.pi*3/4)
+        self.vx = self.v*m.cos(self.theta)
+        self.vy = - self.v*m.sin(self.theta)
+        self.xpos = screen.get_width()/2
+        self.ypos = screen.get_height() - s.balk_h1 - s.balk_h2/2 - s.ball_r
+        self.colour = "blue"
+
+        self.image = pygame.Surface((s.ball_r*2, s.ball_r*2), pygame.SRCALPHA)
+        pygame.draw.circle(self.image, self.colour, (s.ball_r, s.ball_r), s.ball_r)
+        pygame.draw.circle(self.image, "black", (s.ball_r, s.ball_r), s.ball_r, 2)
+        self.rect = self.image.get_rect(center=(self.xpos, self.ypos))
+
+    def movement(self):
+        self.xpos += self.vx
+        self.ypos += self.vy
+        self.rect = self.image.get_rect(center=(self.xpos, self.ypos))
+
+        # self.vx = self.v * m.cos(self.theta)
+        # self.vy =  -self.v * m.sin(self.theta)
+        # self.xpos += self.vx
+        # self.ypos += self.vy
+        # self.rect = self.image.get_rect(center=(self.xpos, self.ypos))
+
+    def collision_check(self):
+        block_list = []
+        #kan wss vebeterd worden
+        rec_list = self.rect.collidelistall(block_row)
+        if len(rec_list) != 0:
+            for block in block_group:
+                if self.rect.colliderect(block.rect):
+                    block_list.append(block)
+                    
+        if len(rec_list) == 1:
+            self.vx, self.vy = direction_change1(block_list[0], self.xpos, self.ypos, self.vx, self.vy, self.theta)
+        if len(rec_list) == 2:
+            self.vx, self.vy = direction_change2(block_list, self.xpos, self.ypos, self.vx, self.vy, self.theta)
+        if len(rec_list) == 3:
+            self.vx, self.vy = direction_change3(block_list, self.xpos, self.ypos, self.vx, self.vy, self.theta)
+
+        # for block in block_group:
+        #     if self.rect.colliderect(block.rect):
+                #checken hoeveel blokken, als niet 1, onderlinge positie v an blocken, als x dan vx = -vx en zelfde met vy = -vy
+                # eerst ff zien welke andere optie
+                
+
+
+    def update(self):
+        self.collision_check()
+        self.movement()
+        
+
+
+ball_group = pygame.sprite.Group()
+ball_group.add(ball_class())
+
+
+
+
+def background():
+    screen.fill("green")
+
+setup()
+
+while running: 
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RIGHT: balk.sprite.key_right = True, 
+            if event.key == pygame.K_LEFT: balk.sprite.key_left = True
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_RIGHT: balk.sprite.key_right = False
+            if event.key == pygame.K_LEFT: balk.sprite.key_left = False
+        
+            
+                    
+    if running:
+        background()
+        balk.draw(screen)
+        balk.update()
+        block_group.draw(screen)
+        ball_group.draw(screen)
+        ball_group.update()
+
+    pygame.display.update()
+    clock.tick(120)
+
+pygame.quit
